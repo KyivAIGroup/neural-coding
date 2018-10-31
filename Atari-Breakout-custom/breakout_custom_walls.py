@@ -1,6 +1,6 @@
 # /usr/bin/python
 
-import math, pygame, sys
+import pygame, sys
 import numpy as np
 from pygame.locals import *
 
@@ -121,10 +121,6 @@ class Game:  # The game itself
         direction.fill(0)
         direction[angle_bin] = 1
 
-        state = np.r_[ball_state, direction]
-        state_prev = np.r_[ball_state_prev, direction_prev]
-
-        w = (w + np.outer(state, state_prev)) > 1
 
         if ball.pos_flatten != ball.pos_flatten_prev:
             position_weights[ball.pos_flatten_prev, ball.pos_flatten] = 1

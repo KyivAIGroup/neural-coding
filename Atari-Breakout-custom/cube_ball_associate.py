@@ -1,4 +1,6 @@
 # /usr/bin/python
+# It has the problem that association memory retrieves wrong patterns.
+
 
 import math, pygame, sys
 import numpy as np
@@ -40,10 +42,7 @@ wall2 = pygame.Rect(SCREEN_SIZE - wall_size, 0, wall_size, SCREEN_SIZE)
 wall3 = pygame.Rect(0, 0, SCREEN_SIZE, wall_size)
 wall4 = pygame.Rect(0, SCREEN_SIZE - wall_size, SCREEN_SIZE, wall_size)
 
-ball_state = np.zeros(SCREEN_BINS ** 2, dtype=int)
-ball_state_prev = np.zeros(SCREEN_BINS ** 2, dtype=int)
-w = np.zeros((SCREEN_BINS ** 2 + ANGLE_BINS, SCREEN_BINS ** 2 + ANGLE_BINS), dtype=bool)
-ball_direction_state = np.zeros(SCREEN_BINS ** 2 + ANGLE_BINS)
+
 
 
 class Ball:  # class for ball vars
@@ -108,28 +107,34 @@ class Game:  # The game itself
         if wall3.collidepoint(ball.x, ball.y) or wall4.collidepoint(ball.x, ball.y):
             ball.y_velocity *= -1
 
-        ball_state_prev = ball_state.copy()
-        ball_state = np.zeros(SCREEN_BINS ** 2, dtype=int)
+        ball_state_prev = np.copy(ball_state)
+        # print(ball_state_prev)
+        ball_state.fill(0)
         ball_state[ball.pos_flatten] = 1
         ball_direction_state_pred = np.dot(w, ball_direction_state)
-
+        # print(np.nonzero(ball_direction_state_pred)[0])
         ball.move()
 
         angle = np.arctan2(ball.y - ball.y_prev, ball.x - ball.x_prev)
         angle = (angle + np.pi) / (2 * np.pi)
         angle_bin = int(angle * ANGLE_BINS)
+
+        direction_prev = np.copy(direction)
         direction.fill(0)
         direction[angle_bin] = 1
 
         ball_direction_state = np.r_[ball_state, direction]
         ball_direction_state_prev = np.r_[ball_state_prev, direction_prev]
 
+        w = (w + np.outer(ball_direction_state, ball_direction_state_prev)) > 0
+        # print(ball_direction_state, '+')
+        # print(ball_direction_state_prev, '-')
 
         if ball.pos_flatten != ball.pos_flatten_prev:
-            w = (w + np.outer(ball_direction_state, ball_direction_state_prev)) > 0
+            print(ball.pos_flatten_prev, ball.pos_flatten)
             self.iters += 1
             # self.correct += ball_pred == ball.pos_flatten
-            # print(ball_pred, ball.pos_flatten, self.correct / self.iters)
+            print(ball_direction_state_pred) #, ball.pos_flatten, self.correct / self.iters)
 
         # get user input
         for event in pygame.event.get():
@@ -146,7 +151,10 @@ if __name__ == '__main__':
     screen.fill(black)
     position = np.zeros((SCREEN_BINS, SCREEN_BINS), dtype=int)
     direction = np.zeros(ANGLE_BINS, dtype=int)
-    direction_prev = direction.copy()
+    ball_state = np.zeros(SCREEN_BINS ** 2, dtype=int)
+    ball_direction_state = np.zeros(SCREEN_BINS ** 2 + ANGLE_BINS)
+
+    w = np.zeros((SCREEN_BINS ** 2 + ANGLE_BINS, SCREEN_BINS ** 2 + ANGLE_BINS), dtype=bool)
 
     ball = Ball()
     ping = Game(ball)
@@ -154,4 +162,4 @@ if __name__ == '__main__':
     # np.arctan2(y, x)
     while True:
         ping.step()
-        print(ball.x_bin, ball.y_bin)
+        # print(ball.x_bin, ball.y_bin)
